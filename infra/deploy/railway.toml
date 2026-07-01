@@ -1,0 +1,18 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd apps/api && npm ci && npm run build"
+startCommand = "cd apps/api && npm start"
+
+[deploy]
+numReplicas = 1
+healthcheckPath = "/api/health"
+healthcheckTimeout = 10
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+
+[[services]]
+name = "consilium-api"
+internalPort = 3000
+
+[variables]
+NODE_ENV = "production"
