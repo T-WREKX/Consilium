@@ -16,6 +16,11 @@ import { generateEmbedding } from './embedding';
 import { vectorSearch, expandOneHop } from '../db/queries';
 import { withGeminiRetry } from './gemini-retry';
 import { loadPrompt } from './promptLoader';
+import {
+  cogneeFallbackEnabled,
+  isCogneeEnabled,
+  recallForQuery,
+} from './cognee';
 
 const chatSystemPrompt = loadPrompt('chat.md');
 
@@ -81,9 +86,32 @@ function calculateConfidence(contexts: RagContext[]): ConfidenceLevel {
 
 /**
  * Retrieve relevant context for a query.
- * Returns cited node IDs, confidence, and context array.
+ * Uses Cognee recall when enabled, with pgvector fallback.
  */
-export async function retrieveContext(query: string): Promise<RagResult> {
+export async function retrieveContext(
+  query: string,
+  sessionId?: string
+): Promise<RagResult> {
+  if (isCogneeEnabled()) {
+    try {
+      const { contexts, nodeIds } = await recallForQuery(query, { sessionId });
+      if (contexts.length > 0) {
+        const confidence = calculateConfidence(contexts);
+        return { citedNodeIds: nodeIds, confidence, contexts };
+      }
+    } catch (err) {
+      console.warn('[rag] Cognee recall failed:', err);
+      if (!cogneeFallbackEnabled()) {
+        return { citedNodeIds: [], confidence: 'refuse', contexts: [] };
+      }
+    }
+  }
+
+  return retrieveContextPgVector(query);
+}
+
+/** Legacy pgvector + 1-hop graph retrieval (fallback when Cognee unavailable). */
+async function retrieveContextPgVector(query: string): Promise<RagResult> {
   // Step 1: Embed query
   const queryEmbedding = await generateEmbedding(query);
 

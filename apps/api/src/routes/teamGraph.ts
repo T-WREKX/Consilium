@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { auth } from '../middleware/auth';
 import { getFullTeamGraph, getNodeById, deleteNodeById } from '../db/queries';
+import { forgetNode, isCogneeEnabled } from '../services/cognee';
 import pool from '../db/pool';
 
 const router = Router();
@@ -100,6 +101,21 @@ router.delete('/nodes/:id', auth, async (req: Request, res: Response) => {
         error: { code: 'NOT_FOUND', message: 'Node not found', retryable: false },
       });
     }
+
+    const meta = (deleted.metadata ?? {}) as Record<string, unknown>;
+    const cogneeDataId =
+      typeof meta.cognee_data_id === 'string' ? meta.cognee_data_id : null;
+    const cogneeDataset =
+      typeof meta.cognee_dataset === 'string' ? meta.cognee_dataset : undefined;
+
+    if (isCogneeEnabled() && cogneeDataId) {
+      try {
+        await forgetNode(cogneeDataId, cogneeDataset);
+      } catch (forgetErr) {
+        console.warn('[team-graph] Cognee forget failed (Postgres delete succeeded):', forgetErr);
+      }
+    }
+
     return res.json({ data: { id: deleted.id } });
   } catch (err) {
     console.error('[team-graph] Failed to delete node:', err);

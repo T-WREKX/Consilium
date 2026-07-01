@@ -29,6 +29,7 @@ The `.agent/` directory contains the canonical product and engineering specifica
 | [context-dump.md](.agent/context-dump.md) | Complete decision history — why every choice was made, what was rejected and why | You need to understand rationale behind a decision, or are tempted to revisit a settled question |
 | [llm-wiki-pattern.md](.agent/llm-wiki-pattern.md) | The LLM Wiki pattern (Karpathy) that the vault implements | You need to understand the vault's architecture |
 | [consilium-vault-assistant.md](.agent/consilium-vault-assistant.md) | System prompt for a vault-grounded Q&A assistant | You want to answer questions strictly from vault content |
+| [cognee-integration.md](.agent/cognee-integration.md) | Cognee memory lifecycle integration — HTTP sidecar, dual-write, session improve | You're working on remember/recall/improve/forget or Cognee infra |
 
 **Scope tags** used throughout these documents:
 - `[MVP]` — Must ship for the 6-day hackathon. No exceptions.
@@ -90,7 +91,25 @@ The `vault/` directory is a structured, interlinked knowledge wiki maintained us
 ### "I want to answer a question strictly grounded in project knowledge"
 → Use the system prompt in [`.agent/consilium-vault-assistant.md`](.agent/consilium-vault-assistant.md) and follow its retrieval priority: `sources/` → `concepts/` → `entities/` → `topics/` → `questions/` → `raw/`
 
+### "I'm integrating or debugging Cognee memory"
+→ Read [`.agent/cognee-integration.md`](.agent/cognee-integration.md), [`.cursor/rules/cognee.md`](.cursor/rules/cognee.md), and the build journal in [`docs/build-journey/`](docs/build-journey/)
+
 ---
+
+## Cognee integration
+
+Consilium uses a **self-hosted Cognee Docker sidecar** for the hackathon memory lifecycle:
+
+| Operation | When |
+|---|---|
+| `remember` | After governed publish (`POST /api/publish`) |
+| `recall` | Knowledge-path chat retrieval (`retrieveContext` in `rag.ts`) |
+| `improve` | Session end — `POST /api/chat/improve` or leaving chat view |
+| `forget` | Node retraction — `DELETE /api/team-graph/nodes/:id` |
+
+**Local setup:** `cd infra && cp cognee.env.example cognee.env` (set `LLM_API_KEY`), then `docker compose up -d cognee`. Smoke test: `.\scripts\cognee-smoke.ps1`.
+
+Postgres remains the UI source of truth for Cytoscape and citations; Cognee is the hybrid graph-vector memory engine. See [`docs/build-journey/`](docs/build-journey/) for the implementation journal.
 
 ## Key Concepts (Quick Glossary)
 

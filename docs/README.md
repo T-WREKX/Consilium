@@ -22,3 +22,10 @@ Place the following here when ready:
 - Video presentation script
 - Cover image / screenshots
 - Demo walkthrough notes
+
+## Build journey (Cognee integration blog)
+
+Chronological implementation journal for the hackathon **Best Blogs** side track:
+
+- [`build-journey/README.md`](build-journey/README.md) — index and entry template
+- [`build-journey/BLOG-draft.md`](build-journey/BLOG-draft.md) — compiled blog draft

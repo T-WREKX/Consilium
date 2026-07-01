@@ -42,6 +42,7 @@ Catalog of every page in the wiki. Updated on every ingest and every lint.
 
 ### AI and model providers
 - [[gemini]] — Google's Gemini 2.5 Pro / Flash / Vision and `text-embedding-004`
+- [[cognee]] — Hybrid graph-vector memory sidecar; powers remember/recall/improve/forget for team brain
 - [[gemma]] — On-device model used in V1 for personal-layer extraction
 - [[whisper]] — OpenAI Whisper API for audio transcription
 - [[microsoft-presidio]] — Self-hosted PII detection used in redaction Pass 1
@@ -110,6 +111,7 @@ Catalog of every page in the wiki. Updated on every ingest and every lint.
 - [[consilium-business-model]] — Practice-group license + land-and-expand; market sizing TAM/SAM/SOM
 - [[competitive-moat]] — Vertical depth, privacy architecture, pluggable positioning, network effects
 - [[hackathon-judging-fit]] — Why Consilium maps cleanly to Track 4 and the Gemini Award
+- [[cognee-integration-journey]] — Cognee memory lifecycle integration and build journal
 - [[consilium-decision-history]] — Ten-phase reasoning chain from Obsidian curiosity to locked MVP
 - [[consilium-rejected-ideas]] — Queryable surface of ideas explicitly ruled out (don't regress)
 - [[consilium-codebase-structure]] — Monorepo layout: apps/, .agent/, infra/, docs/, vault/ — file ownership per developer

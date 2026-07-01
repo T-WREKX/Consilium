@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useChatStore } from '../../store/chatStore';
 import { useAuthStore } from '../../store/authStore';
-import { streamChat, buildHistoryPayload } from '../../api/chat';
+import { streamChat, buildHistoryPayload, improveChatSession } from '../../api/chat';
 import { ChatMessageComponent } from './ChatMessage';
 import { NodeSummaryPanel } from './NodeSummaryPanel';
 import { SourcesPanel } from './SourcesPanel';
@@ -46,7 +46,19 @@ export const ChatView: React.FC = () => {
     finishStreaming,
     setOverlayActive,
     clearMessages,
+    getSessionId,
+    resetSession,
   } = useChatStore();
+
+  // Bridge session Q&A into Cognee permanent memory when leaving chat
+  useEffect(() => {
+    return () => {
+      const sessionId = getSessionId();
+      if (sessionId && token) {
+        improveChatSession(sessionId, token).catch(() => {});
+      }
+    };
+  }, [getSessionId, token]);
 
   const handleResetChat = useCallback(() => {
     if (messages.length === 0) return;
@@ -79,7 +91,7 @@ export const ChatView: React.FC = () => {
     const history = buildHistoryPayload(messages);
 
     try {
-      await streamChat(query, history, token, {
+      await streamChat(query, history, getSessionId(), token, {
         onKind: (kind) => {
           // For conversational replies, start streaming immediately — there
           // is no cited-nodes event coming. For knowledge replies, wait for
@@ -109,7 +121,23 @@ export const ChatView: React.FC = () => {
     } finally {
       setPending(false);
     }
-  }, [input, isStreaming, isPending, token, messages, addUserMessage, setPending, startStreaming, appendToken, finishStreaming]);
+  }, [input, isStreaming, isPending, token, messages, addUserMessage, setPending, startStreaming, appendToken, finishStreaming, getSessionId]);
+
+  const handleSaveSession = useCallback(async () => {
+    const sessionId = getSessionId();
+    const ok = await improveChatSession(sessionId, token);
+    if (ok) {
+      window.alert('Session saved to firm memory.');
+    }
+  }, [getSessionId, token]);
+
+  const handleNewSession = useCallback(async () => {
+    const sessionId = getSessionId();
+    await improveChatSession(sessionId, token);
+    resetSession();
+    setSelectedNodeId(null);
+    setSourcesExpanded(false);
+  }, [getSessionId, resetSession, token]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -165,17 +193,39 @@ export const ChatView: React.FC = () => {
             </div>
           </div>
           {messages.length > 0 && (
-            <button
-              type="button"
-              className="chat-reset-btn"
-              onClick={handleResetChat}
-              disabled={isStreaming || isPending}
-              title="Reset chat — clears all messages"
-              aria-label="Reset chat"
-            >
-              <Trash2 size={14} />
-              Reset chat
-            </button>
+            <div className="chat-header-actions">
+              <button
+                type="button"
+                className="chat-reset-btn"
+                onClick={handleSaveSession}
+                disabled={isStreaming || isPending}
+                title="Save this session to firm memory (Cognee improve)"
+                aria-label="Save session to firm memory"
+              >
+                Save session
+              </button>
+              <button
+                type="button"
+                className="chat-reset-btn"
+                onClick={handleNewSession}
+                disabled={isStreaming || isPending}
+                title="End session, save to firm memory, and start fresh"
+                aria-label="Start new session"
+              >
+                New session
+              </button>
+              <button
+                type="button"
+                className="chat-reset-btn"
+                onClick={handleResetChat}
+                disabled={isStreaming || isPending}
+                title="Reset chat — clears all messages"
+                aria-label="Reset chat"
+              >
+                <Trash2 size={14} />
+                Reset chat
+              </button>
+            </div>
           )}
         </div>
       </div>

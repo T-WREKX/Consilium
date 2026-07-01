@@ -6,6 +6,8 @@ import { rateLimit } from '../middleware/rateLimit';
 import { redactNote } from '../services/redaction';
 import { generateEmbedding } from '../services/embedding';
 import { insertNode, insertEdge } from '../db/queries';
+import { isCogneeEnabled, rememberInsight } from '../services/cognee';
+import pool from '../db/pool';
 
 const router = Router();
 
@@ -75,6 +77,26 @@ router.post('/publish', auth, rateLimit, async (req: Request, res: Response) => 
           target_node_id: relatedId,
           edge_type: 'related_to',
         });
+      }
+    }
+
+    // Dual-write to Cognee memory (async-safe — failure logged, publish still succeeds)
+    if (isCogneeEnabled()) {
+      try {
+        const userRow = await pool.query<{ display_name: string }>(
+          'SELECT display_name FROM users WHERE id = $1',
+          [contributorId]
+        );
+        await rememberInsight({
+          nodeId,
+          title,
+          nodeType,
+          body,
+          summary,
+          contributorName: userRow.rows[0]?.display_name,
+        });
+      } catch (cogneeErr) {
+        console.warn('[publish] Cognee remember failed (Postgres publish succeeded):', cogneeErr);
       }
     }
 

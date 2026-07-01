@@ -29,6 +29,7 @@ Consilium is a two-layer knowledge platform for law firms. It captures individua
 | **Privacy-First Publishing** | Two-pass redaction pipeline (Presidio PII tokenization + Gemini generalization) with side-by-side diff review |
 | **Team Knowledge Graph** | Governed, queryable graph of the practice group's accumulated intelligence |
 | **Citation-Grounded Chat** | RAG-powered retrieval over the team graph; every claim cites a source node |
+| **Cognee Memory Layer** | Hybrid graph-vector memory — remember on publish, recall in chat, improve across sessions, forget on retraction |
 | **Query-Overlay Visualization** | Signature visual moment — chat dims, team graph fades in, cited nodes pulse as the answer streams |
 | **Pluggable Brain (V1)** | MCP server endpoint so external AI tools (Harvey, CoCounsel, Copilot) can query the firm's knowledge |
 
@@ -39,7 +40,7 @@ Consilium is a two-layer knowledge platform for law firms. It captures individua
 | Frontend | React 18, Vite, TypeScript, Tailwind CSS, Cytoscape.js |
 | Backend | Node.js 20, Express, TypeScript |
 | Database | PostgreSQL 16, pgvector |
-| AI | Gemini 2.5 Pro/Flash/Vision, Whisper API, Microsoft Presidio |
+| AI | Gemini 2.5 Pro/Flash/Vision, Whisper API, Microsoft Presidio, Cognee (memory sidecar) |
 | Personal Storage | IndexedDB (browser) |
 | Deployment | Vercel (frontend), Railway/Render (backend + Postgres) |
 
@@ -95,9 +96,9 @@ consilium/
 
 ## Hackathon Context
 
-Built for the **WeMakeDevs Cognee Hackathon**.
+Built for the **WeMakeDevs Cognee Hackathon**. Team-brain memory powered by [Cognee](https://docs.cognee.ai/) (`remember` / `recall` / `improve` / `forget`).
 
-**Demo narrative (5 min):** Capture → Publish with visible redaction → Retrieval with graph-overlay visualization.
+**Demo narrative (5 min):** Capture → Publish with visible redaction → Retrieval with graph-overlay visualization → Save session to firm memory.
 
 ## Developers
 

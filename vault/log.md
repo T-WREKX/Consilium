@@ -13,7 +13,11 @@ Tip: `grep "^## \[" log.md | head -5` yields the last 5 entries.
 
 ---
 
-## [2026-05-15] note | Design decision — graph rest state: color, not grey
+## [2026-07-01] ingest | Cognee integration
+
+Integrated [[cognee]] memory lifecycle into Consilium: Docker sidecar, HTTP client (`cognee.ts`), dual-write on publish, recall in chat with pgvector fallback, session improve/forget. Created [[cognee-integration-journey]] topic, build journal in `docs/build-journey/`, and `.agent/cognee-integration.md` engineering spec.
+
+---
 
 Recorded the rest-state inversion as a deliberate design decision in [[node-color-coding]] with a new "Rest-state philosophy" section. Before/after table, rationale (grey-at-rest treated color as a reward and undersold the per-type structure; color-at-rest communicates "map of nine kinds of things" immediately while spotlight grey-out still provides focus), what didn't change (strict UI-vs-data palette separation — accent orange still reserved for cited edges), where it lives (`graphStyles.ts`, `TeamGraphView.tsx`, both views' `applySpotlight`), and the tradeoff at firm scale (V1 may need zoom-based desaturation). Visual parity between personal and team graphs is now part of the spec.
 

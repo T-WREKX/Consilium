@@ -19,7 +19,18 @@ How [[consilium|Consilium]] maps to **Track 4 (Data & Intelligence)** focus area
 | RAG systems over proprietary or multi-source data | The team graph with [[citation-grounding|citation-grounded retrieval]] |
 | AI-powered data pipelines and validation | The capture-to-structured-graph pipeline ([[auto-organization-pipeline]]) |
 | Analytics agents for natural language querying | Conversational query of the team brain ([[rag-query-pipeline]]) |
-| Knowledge graph extraction from documents | [[knowledge-graph-extraction|The technical core]] |
+| Knowledge graph extraction from documents | [[knowledge-graph-extraction|The technical core]] + [[cognee|Cognee]] hybrid graph-vector memory |
+
+## Cognee integration (Best Use of Cognee)
+
+| Lifecycle API | Consilium surface |
+|---|---|
+| `remember()` | Governed publish dual-write |
+| `recall()` | Citation-grounded chat retrieval |
+| `improve()` | Session → permanent graph bridge |
+| `forget()` | Node retraction / governance |
+
+Build journal: `docs/build-journey/BLOG-draft.md`
 
 ## Gemini Award
 

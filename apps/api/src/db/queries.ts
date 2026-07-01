@@ -176,16 +176,60 @@ export async function getNodeCount(): Promise<number> {
 /**
  * Delete a team graph node. Connected edges cascade via the FK constraint
  * (team_graph_edges.{source,target}_node_id ON DELETE CASCADE).
- * Returns the deleted row's id + contributor_id, or null if not found.
+ * Returns the deleted row's id + contributor_id + metadata, or null if not found.
  */
 export async function deleteNodeById(
   nodeId: string
-): Promise<{ id: string; contributor_id: string | null } | null> {
+): Promise<{ id: string; contributor_id: string | null; metadata: Record<string, unknown> } | null> {
   const result = await pool.query(
     `DELETE FROM team_graph_nodes
      WHERE id = $1
-     RETURNING id, contributor_id`,
+     RETURNING id, contributor_id, metadata`,
     [nodeId]
   );
   return result.rows[0] ?? null;
+}
+
+/**
+ * Merge keys into a node's metadata JSONB column.
+ */
+export async function updateNodeMetadata(
+  nodeId: string,
+  patch: Record<string, unknown>
+): Promise<void> {
+  await pool.query(
+    `UPDATE team_graph_nodes
+     SET metadata = COALESCE(metadata, '{}'::jsonb) || $2::jsonb,
+         updated_at = now()
+     WHERE id = $1`,
+    [nodeId, JSON.stringify(patch)]
+  );
+}
+
+/**
+ * Load multiple team graph nodes by UUID (preserves caller order when mapping recall hits).
+ */
+export async function getNodesByIds(nodeIds: string[]) {
+  if (nodeIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT id, node_type, title, body, summary, contributor_id, metadata,
+            created_at, updated_at
+     FROM team_graph_nodes
+     WHERE id = ANY($1::uuid[])`,
+    [nodeIds]
+  );
+  return result.rows;
+}
+
+/**
+ * Fetch metadata for a single node (for forget / cognee lookups).
+ */
+export async function getNodeMetadata(
+  nodeId: string
+): Promise<Record<string, unknown> | null> {
+  const result = await pool.query<{ metadata: Record<string, unknown> }>(
+    `SELECT metadata FROM team_graph_nodes WHERE id = $1`,
+    [nodeId]
+  );
+  return result.rows[0]?.metadata ?? null;
 }

@@ -33,6 +33,7 @@ import {
   type SeedLawyer,
 } from './team-graph.seed';
 import { deriveAllEdges } from './deriveEdges';
+import { syncInsightsToCognee, isCogneeEnabled } from '../services/cognee';
 
 const BCRYPT_ROUNDS = 10;
 
@@ -307,6 +308,14 @@ export async function runSeed(options: { reset?: boolean } = {}): Promise<{ user
   console.log(
     `[seed] Derived edges: ${derived.sharedEntity} shared-entity, ${derived.embeddingSimilarity} embedding-similarity, ${derived.entityCooccurrence} co-occurrence`
   );
+
+  if (isCogneeEnabled()) {
+    console.log('[seed] Syncing insight nodes to Cognee...');
+    const cogneeSync = await syncInsightsToCognee();
+    console.log(
+      `[seed] Cognee sync: ${cogneeSync.synced} ingested, ${cogneeSync.skipped} skipped`
+    );
+  }
 
   const userCount = await pool.query('SELECT COUNT(*)::int AS count FROM users');
   const nodeCount = await getNodeCount();

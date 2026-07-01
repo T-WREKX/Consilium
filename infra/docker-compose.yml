@@ -35,5 +35,39 @@ services:
     ports:
       - "5002:3000"
 
+  cognee:
+    image: cognee/cognee:main
+    container_name: consilium-cognee
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./cognee.env
+    volumes:
+      - cognee_data:/app/.data_storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  cognee-mcp:
+    image: cognee/cognee-mcp:main
+    container_name: consilium-cognee-mcp
+    restart: unless-stopped
+    profiles:
+      - mcp
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./cognee.env
+    environment:
+      - TRANSPORT_MODE=sse
+    volumes:
+      - cognee_mcp_data:/app/.data_storage
+
 volumes:
   pgdata:
+  cognee_data:
+  cognee_mcp_data:

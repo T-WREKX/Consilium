@@ -92,6 +92,15 @@
   justify-content: space-between;
   gap: 16px;
 }
+
+.chat-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .chat-reset-btn {
   display: inline-flex;
   align-items: center;

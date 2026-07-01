@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cognee": {
+      "url": "http://localhost:8001/sse",
+      "description": "Cognee MCP (dev agent memory). Start with: docker compose --profile mcp up -d cognee-mcp"
+    }
+  }
+}

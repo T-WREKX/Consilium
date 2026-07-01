@@ -1,8 +1,23 @@
 import { create } from 'zustand';
 import type { ChatKind, ChatMessage, ConfidenceLevel } from '../types';
 
+const SESSION_STORAGE_KEY = 'consilium-chat-session-id';
+
+function getOrCreateSessionId(): string {
+  if (typeof sessionStorage === 'undefined') {
+    return crypto.randomUUID();
+  }
+  let id = sessionStorage.getItem(SESSION_STORAGE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+  }
+  return id;
+}
+
 interface ChatState {
   messages: ChatMessage[];
+  sessionId: string;
   isStreaming: boolean;
   isPending: boolean; // Submitted; awaiting first response event (kind)
   citedNodeIds: string[];
@@ -30,6 +45,9 @@ interface ChatState {
   ) => void;
   setOverlayActive: (active: boolean) => void;
   clearMessages: () => void;
+  /** Start a fresh Cognee session (cross-session memory demo). */
+  resetSession: () => string;
+  getSessionId: () => string;
 }
 
 let messageCounter = 0;
@@ -38,13 +56,33 @@ function generateId(): string {
   return `msg_${Date.now()}_${++messageCounter}`;
 }
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
+  sessionId: getOrCreateSessionId(),
   isStreaming: false,
   isPending: false,
   citedNodeIds: [],
   confidence: null,
   overlayActive: false,
+
+  getSessionId: () => get().sessionId,
+
+  resetSession: () => {
+    const newId = crypto.randomUUID();
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, newId);
+    }
+    set({
+      messages: [],
+      sessionId: newId,
+      isStreaming: false,
+      isPending: false,
+      citedNodeIds: [],
+      confidence: null,
+      overlayActive: false,
+    });
+    return newId;
+  },
 
   setPending: (pending: boolean) => set({ isPending: pending }),
 

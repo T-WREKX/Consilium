@@ -37,6 +37,7 @@ export function buildHistoryPayload(messages: ChatMessage[]): ChatHistoryTurn[] 
 export async function streamChat(
   query: string,
   history: ChatHistoryTurn[],
+  sessionId: string,
   token: string | null,
   callbacks: ChatSSECallbacks
 ): Promise<void> {
@@ -50,7 +51,7 @@ export async function streamChat(
   const response = await fetch(`${BASE_URL}/api/chat`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ query, history }),
+    body: JSON.stringify({ query, history, sessionId }),
   });
 
   if (!response.ok) {
@@ -151,4 +152,29 @@ export async function fetchTeamGraph(token: string | null) {
   if (!response.ok) return null;
   const json = await response.json();
   return json.data;
+}
+
+/**
+ * Bridge chat session memory into permanent Cognee graph (improve).
+ */
+export async function improveChatSession(
+  sessionId: string,
+  token: string | null
+): Promise<boolean> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}/api/chat/improve`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ sessionId }),
+  });
+
+  if (!response.ok) return false;
+  const json = await response.json();
+  return Boolean(json.data?.improved);
 }
