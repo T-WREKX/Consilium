@@ -8,11 +8,8 @@
  * knowledge produces an awkward-but-safe outcome. Misrouting a substantive
  * query to conversational is the dangerous direction.
  */
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import { withGeminiRetry } from './gemini-retry';
+import { generateText } from './ollama';
 import type { ChatKind, ChatTurn } from '../types/chat-protocol';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 const CLASSIFIER_SYSTEM_PROMPT = `You route a user's chat message to one of two handlers in a legal-knowledge assistant.
 
@@ -23,26 +20,9 @@ Return "conversational" when the message is one of:
 
 Return "knowledge" when the message asks for facts, opinions, or strategy from the firm's litigation knowledge — including substantive follow-ups like "tell me more about that judge" or "what else have we tried on cross?".
 
-When in doubt, return "knowledge". Misrouting a substantive query to conversational is worse than the other direction.`;
+When in doubt, return "knowledge". Misrouting a substantive query to conversational is worse than the other direction.
 
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.5-flash',
-  systemInstruction: CLASSIFIER_SYSTEM_PROMPT,
-  generationConfig: {
-    responseMimeType: 'application/json',
-    responseSchema: {
-      type: SchemaType.OBJECT,
-      properties: {
-        kind: {
-          type: SchemaType.STRING,
-          format: 'enum',
-          enum: ['knowledge', 'conversational'],
-        },
-      },
-      required: ['kind'],
-    },
-  },
-});
+Respond with a single JSON object: {"kind": "knowledge"} or {"kind": "conversational"}. No other text.`;
 
 function buildHistoryBlock(recentTurns: ChatTurn[]): string {
   if (recentTurns.length === 0) return '(no prior turns)';
@@ -59,11 +39,11 @@ export async function classifyQuery(
   const userMessage = `${buildHistoryBlock(recentTurns)}\n\nCurrent user message:\n${query}`;
 
   try {
-    const result = await withGeminiRetry(
-      (opts) => model.generateContent(userMessage, opts),
-      { label: 'chat.classifier', timeoutMs: 8_000, maxAttempts: 2 }
-    );
-    const text = result.response.text().trim();
+    const text = await generateText(userMessage, {
+      systemPrompt: CLASSIFIER_SYSTEM_PROMPT,
+      json: true,
+      timeoutMs: 8_000,
+    });
     const parsed = JSON.parse(text) as { kind?: string };
     if (parsed.kind === 'conversational') return 'conversational';
     return 'knowledge';

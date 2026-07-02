@@ -1,14 +1,12 @@
 // apps/api/src/services/redaction.ts
 import fs from 'fs';
 import path from 'path';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
-import { withGeminiRetry } from './gemini-retry';
+import { generateText } from './ollama';
 
 dotenv.config();
 dotenv.config({ path: '.env.local', override: true });
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const PRESIDIO_ANALYZER = process.env.PRESIDIO_ANALYZER_URL ?? 'http://localhost:5001';
 const PRESIDIO_ANONYMIZER = process.env.PRESIDIO_ANONYMIZER_URL ?? 'http://localhost:5002';
 
@@ -102,37 +100,23 @@ function regexFallback(text: string): { tokenized: string; redactions: Redaction
   return { tokenized, redactions };
 }
 
-// Pass 2: Gemini Pro generalization
-async function geminiGeneralize(tokenizedText: string): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
-  const result = await withGeminiRetry(
-    (opts) =>
-      model.generateContent(
-        [{ text: redactPrompt }, { text: tokenizedText }],
-        opts
-      ),
-    { label: 'redact.generalize', timeoutMs: 30_000 }
-  );
-  return result.response.text().trim();
+// Pass 2: LLM generalization (rewrites tokenized PII placeholders into safe generalizations)
+async function llmGeneralize(tokenizedText: string): Promise<string> {
+  return generateText(tokenizedText, {
+    systemPrompt: redactPrompt,
+    timeoutMs: 45_000,
+  });
 }
 
-// Preservation score: Gemini Flash
-async function geminiPreservationScore(original: string, sanitized: string): Promise<number> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-  const result = await withGeminiRetry(
-    (opts) =>
-      model.generateContent(
-        [
-          { text: preservePrompt },
-          { text: `ORIGINAL:\n${original}\n\nSANITIZED:\n${sanitized}` },
-        ],
-        opts
-      ),
-    { label: 'redact.preserve', timeoutMs: 20_000 }
+// Preservation score: how much of the original meaning survived generalization
+async function llmPreservationScore(original: string, sanitized: string): Promise<number> {
+  const text = await generateText(
+    `ORIGINAL:\n${original}\n\nSANITIZED:\n${sanitized}`,
+    { systemPrompt: preservePrompt, json: true, timeoutMs: 30_000 }
   );
 
   try {
-    const parsed = JSON.parse(result.response.text().trim()) as { score: number };
+    const parsed = JSON.parse(text) as { score: number };
     return Math.min(100, Math.max(0, parsed.score));
   } catch {
     return 50;
@@ -141,8 +125,8 @@ async function geminiPreservationScore(original: string, sanitized: string): Pro
 
 export async function redactNote(content: string): Promise<RedactResult> {
   const { tokenized, redactions: piiRedactions } = await presidioRedact(content);
-  const sanitized = await geminiGeneralize(tokenized);
-  const confidence = await geminiPreservationScore(content, sanitized);
+  const sanitized = await llmGeneralize(tokenized);
+  const confidence = await llmPreservationScore(content, sanitized);
 
   return {
     original: content,

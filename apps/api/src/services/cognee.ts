@@ -99,6 +99,8 @@ function extractDataId(payload: unknown): string | null {
     obj.dataId,
     obj.id,
     (obj.data as Record<string, unknown> | undefined)?.id,
+    // Real /api/v1/remember response shape: { items: [{ id }] }
+    (Array.isArray(obj.items) ? (obj.items[0] as Record<string, unknown> | undefined) : undefined),
     (Array.isArray(obj) ? obj[0] : undefined) as Record<string, unknown> | undefined,
   ];
   for (const c of candidates) {
@@ -217,12 +219,12 @@ export async function recallForQuery(
   const body: Record<string, unknown> = {
     query,
     datasets: [datasetName()],
-    search_type: options.searchType ?? 'CHUNKS',
-    top_k: options.topK ?? 8,
+    searchType: options.searchType ?? 'CHUNKS',
+    topK: options.topK ?? 8,
     scope: 'auto',
-    only_context: true,
+    onlyContext: true,
   };
-  if (options.sessionId) body.session_id = options.sessionId;
+  if (options.sessionId) body.sessionId = options.sessionId;
 
   const response = await cogneeFetch('/api/v1/recall', {
     method: 'POST',
@@ -322,8 +324,8 @@ export async function improveSession(sessionId: string): Promise<void> {
   if (!isCogneeEnabled()) return;
 
   const body = {
-    dataset: datasetName(),
-    session_ids: [sessionId],
+    datasetName: datasetName(),
+    sessionIds: [sessionId],
   };
 
   const response = await cogneeFetch('/api/v1/improve', {
@@ -349,9 +351,9 @@ export async function forgetNode(cogneeDataId: string, dataset?: string): Promis
 
   // Try v1 forget endpoint first
   const forgetBody = {
-    kind: 'item',
-    data_id: cogneeDataId,
-    dataset: { name: ds },
+    dataId: cogneeDataId,
+    dataset: ds,
+    memoryOnly: false,
   };
 
   let response = await cogneeFetch('/api/v1/forget', {

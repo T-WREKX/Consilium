@@ -44,7 +44,12 @@ services:
     env_file:
       - ./cognee.env
     volumes:
-      - cognee_data:/app/.data_storage
+      # The image's cwd is /app/cognee, not /app — mounting /app/.data_storage
+      # (the old path here) silently misses the real data dirs, so the
+      # relational DB (users/API keys) and vector/graph stores reset on every
+      # container recreation.
+      - cognee_data:/app/cognee/.data_storage
+      - cognee_system:/app/cognee/.cognee_system
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
       interval: 15s
@@ -70,4 +75,5 @@ services:
 volumes:
   pgdata:
   cognee_data:
+  cognee_system:
   cognee_mcp_data:

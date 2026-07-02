@@ -11,10 +11,9 @@
  *   7. Calculate confidence level
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { generateEmbedding } from './embedding';
 import { vectorSearch, expandOneHop } from '../db/queries';
-import { withGeminiRetry } from './gemini-retry';
+import { streamText } from './ollama';
 import { loadPrompt } from './promptLoader';
 import {
   cogneeFallbackEnabled,
@@ -23,8 +22,6 @@ import {
 } from './cognee';
 
 const chatSystemPrompt = loadPrompt('chat.md');
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'refuse';
 
@@ -192,22 +189,8 @@ export async function* streamRagResponse(
 
   const userMessage = `Context:\n${JSON.stringify(contextPayload, null, 2)}\n\nQuestion: ${query}`;
 
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-pro',
-    systemInstruction: chatSystemPrompt,
+  yield* streamText(userMessage, {
+    systemPrompt: chatSystemPrompt,
+    timeoutMs: 60_000,
   });
-
-  // Retry the initial stream connect only. Once chunks start flowing we can't
-  // safely retry mid-stream — partial output may already have reached the user.
-  const result = await withGeminiRetry(
-    (opts) => model.generateContentStream(userMessage, opts),
-    { label: 'rag.stream', timeoutMs: 30_000 }
-  );
-
-  for await (const chunk of result.stream) {
-    const text = chunk.text();
-    if (text) {
-      yield text;
-    }
-  }
 }

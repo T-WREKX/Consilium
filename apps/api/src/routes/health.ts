@@ -7,7 +7,7 @@ const router = Router();
  * GET /api/health
  * Health check for deployment platform monitoring.
  */
-router.get('/health', async (_req: Request, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   let cognee: { enabled: boolean; healthy: boolean | null } = {
     enabled: isCogneeEnabled(),
     healthy: null,
